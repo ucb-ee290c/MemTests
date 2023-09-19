@@ -48,22 +48,7 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-<<<<<<< HEAD:workspace/core/src/main.c
-const char* get_march(size_t marchid) {
-  switch (marchid) {
-  case 1:
-    return "rocket";
-  case 2:
-    return "sonicboom";
-  case 5:
-    return "spike";
-  default:
-    return "unknown";
-  }
-}
-=======
 
->>>>>>> 3c353e3791881fb1d84a1787baf4dd77d2f17435:core/src/main.c
 /* USER CODE END 0 */
 
 /**
