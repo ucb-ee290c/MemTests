@@ -48,6 +48,87 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void test_cache() {
+    int NUM_TESTS = 10;
+
+    int data_count;
+    uint8_t *data;
+    uint64_t start_t_stamp;
+    uint64_t end_t_stamp;
+    uint64_t access_time;
+    int error;
+
+    error = 0;
+    for(int i = 0; i < NUM_TESTS; i++) {
+      data_count = 0;
+      data = SRAM_BASE;
+      start_t_stamp = HAL_CLINT_getTime(); 
+      while (data_count < 1024) {
+        volatile *data = 194;
+        volatile uint8_t data_loaded = *data;
+        if (data_loaded != 194) {
+          error += 1;
+        }
+        data += 1;
+        data_count += 1;
+      };
+      end_t_stamp = HAL_CLINT_getTime();
+      access_time += end_t_stamp - start_t_stamp;
+    }
+    printf("Average Cache Sequential Read after Write Error: %d\n", error);
+    
+    access_time = 0;
+    for(int i = 0; i < NUM_TESTS; i++) {
+      data_count = 0;
+      data = SRAM_BASE;
+      start_t_stamp = HAL_CLINT_getTime(); 
+      while (data_count < 1024) {
+        volatile uint8_t data_loaded = *data;
+        data += 1;
+        data_count += 1;
+      };
+      end_t_stamp = HAL_CLINT_getTime();
+      access_time += end_t_stamp - start_t_stamp;
+    }
+    printf("Average Cache Sequential Read Time: %d\n", access_time / NUM_TESTS);
+    
+    access_time = 0;
+    for(int i = 0; i < NUM_TESTS; i++) {
+      data_count = 0;
+      data = SRAM_BASE;
+      start_t_stamp = HAL_CLINT_getTime(); 
+      while (data_count < 1024) {
+        volatile *data = 194;
+        data += 1;
+        data_count += 1;
+      };
+      end_t_stamp = HAL_CLINT_getTime();
+      access_time += end_t_stamp - start_t_stamp;
+    }
+    printf("Average Cache Sequential Write Time: %d\n", access_time / NUM_TESTS);
+}
+
+
+void test_scratchpad() {
+  uint64_t start_t_stamp;
+  uint64_t end_t_stamp;
+  uint64_t access_time;
+
+  start_t_stamp = HAL_CLINT_getTime(); 
+
+  llist_t root;
+  llist_t *cursor = &root;
+  int count = 0;
+
+  while (count < 1024) {
+    cursor->val = 194;
+    llist_t next;
+    cursor->next = &next;
+    cursor = &next;
+  }
+
+  end_t_stamp = HAL_CLINT_getTime();
+}
 
 /* USER CODE END 0 */
 
@@ -102,11 +183,34 @@ int main(int argc, char **argv) {
     HAL_delay(100);
 
 
+    /* 
     char str[128];
     uint64_t mhartid = READ_CSR("mhartid");
     sprintf(str, "Hello world from hart %d: %d\n", mhartid, counter);
     HAL_UART_transmit(UART0, (uint8_t *)str, strlen(str), 100);
     counter += 1;
+    */
+
+   /* Tests for L2 Cache */
+   //TODO: Disable MTE
+   //TODO: Disable Prefetcher
+    test_cache();
+
+    /* Tests for Prefetcher */
+    //TODO: Disable MTE
+    //TODO: Enable Prefetcher
+    test_cache();
+
+    /* Tests for MTE */
+    //TODO: Enable MTE
+    //TODO: Disable Prefetcher
+    test_cache();
+
+    /* Tests for ScratchPad */
+    //TODO: Disable MTE
+    //TODO: Disable Prefetcher
+    test_scratchpad();
+
 		/* USER CODE END WHILE */
 	}
 

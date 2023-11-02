@@ -53,7 +53,10 @@ extern "C" {
 
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN Private defines */
-
+typedef struct llist {
+  int val;
+  struct llist *next;
+} llist_t;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
