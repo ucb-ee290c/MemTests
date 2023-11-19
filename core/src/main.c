@@ -61,8 +61,7 @@ void test_cache() {
     error = 0;
     for(int i = 0; i < NUM_TESTS; i++) {
       data_count = 0;
-      data = SRAM_BASE;
-      start_t_stamp = HAL_CLINT_getTime(); 
+      data = (uint8_t *) (SRAM_BASE + 61440);
       while (data_count < 1024) {
         volatile *data = 194;
         volatile uint8_t data_loaded = *data;
@@ -72,15 +71,13 @@ void test_cache() {
         data += 1;
         data_count += 1;
       };
-      end_t_stamp = HAL_CLINT_getTime();
-      access_time += end_t_stamp - start_t_stamp;
     }
     printf("Average Cache Sequential Read after Write Error: %d\n", error);
     
     access_time = 0;
     for(int i = 0; i < NUM_TESTS; i++) {
       data_count = 0;
-      data = SRAM_BASE;
+      data = (uint8_t *) (SRAM_BASE + 61440);
       start_t_stamp = HAL_CLINT_getTime(); 
       while (data_count < 1024) {
         volatile uint8_t data_loaded = *data;
@@ -95,7 +92,7 @@ void test_cache() {
     access_time = 0;
     for(int i = 0; i < NUM_TESTS; i++) {
       data_count = 0;
-      data = SRAM_BASE;
+      data = (uint8_t *) (SRAM_BASE + 61440);
       start_t_stamp = HAL_CLINT_getTime(); 
       while (data_count < 1024) {
         volatile *data = 194;
@@ -199,17 +196,17 @@ int main(int argc, char **argv) {
     /* Tests for Prefetcher */
     //TODO: Disable MTE
     //TODO: Enable Prefetcher
-    test_cache();
+    //test_cache();
 
     /* Tests for MTE */
     //TODO: Enable MTE
     //TODO: Disable Prefetcher
-    test_cache();
+    //test_cache();
 
     /* Tests for ScratchPad */
     //TODO: Disable MTE
     //TODO: Disable Prefetcher
-    test_scratchpad();
+    //test_scratchpad();
 
 		/* USER CODE END WHILE */
 	}
