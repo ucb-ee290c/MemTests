@@ -49,6 +49,59 @@
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/*
+void LL_delay(uint64_t time) {
+  uint64_t target_tick = CLINT->MTIME + (time * MTIME_FREQ);
+  while (CLINT->MTIME < target_tick) {
+    // asm("nop");
+  }
+}
+*/
+
+static uint64_t read_cycles() {
+    uint64_t cycles;
+    asm volatile ("rdcycle %0" : "=r" (cycles));
+    return cycles;
+}
+
+
+uint64_t test_cache(uint8_t prefetch_en) {
+    volatile uint8_t *prefetch_en_reg = (volatile uint8_t *) 0x10050000;
+    *prefetch_en_reg = prefetch_en;
+
+    int NUM_TESTS = 10;
+
+    int data_count;
+    uint8_t *data;
+    uint64_t start_t_stamp;
+    uint64_t end_t_stamp;
+    uint64_t access_time;
+    int error;
+
+    error = 0;
+    start_t_stamp = read_cycles();
+    for(int i = 0; i < NUM_TESTS; i++) {
+      data_count = 0;
+      data = ((uint8_t *)SCRATCH_BASE) + 3072;
+      while (data_count < 10240) {
+        *data = 194;
+        volatile uint8_t data_loaded = *data;
+        if (data_loaded != 194) {
+          error += 1;
+        }
+        data += 1;
+        data_count += 1;
+      };
+    }
+    end_t_stamp = read_cycles();
+    if (error > 0) {
+      return 0;
+    } else {
+      return end_t_stamp - start_t_stamp;
+    }
+    
+}
+
 void LL_UART_transmit(UART_TypeDef *UARTx, const uint8_t *data, uint16_t size, uint32_t timeout) {
   while (size > 0) {
     while (READ_BITS(UARTx->TXDATA, UART_TXDATA_FULL_MSK)) {
@@ -62,6 +115,13 @@ void LL_UART_transmit(UART_TypeDef *UARTx, const uint8_t *data, uint16_t size, u
 }
 
 char str[64] = "Hello world from hart\n";
+char str_wo_pre_pass[64] = "Mem PASS\n";
+char str_wo_pre_error[64] = "Mem ERROR\n";
+char str_w_pre_pass[64] = "Mem Prefetch PASS\n";
+char str_w_pre_error[64] = "Mem Prefetch ERROR\n";
+char str_pre_le[64] = "Mem Prefetch Less\n";
+char str_pre_eq[64] = "Mem Prefetch Equal\n";
+char str_pre_ge[64] = "Mem Prefetch Greater\n";
 /* USER CODE END 0 */
 
 /**
@@ -114,7 +174,7 @@ int main(int argc, char **argv) {
   
   // baudrate setting
   // f_baud = f_sys / (div + 1)
-  UART0->DIV = (SYS_CLK_FREQ / 115200) - 1;
+  // UART0->DIV = (SYS_CLK_FREQ / 115200) - 1;
   
 
   /* USER CODE END 2 */
@@ -123,10 +183,50 @@ int main(int argc, char **argv) {
   /* USER CODE BEGIN WHILE */
   while (1) {
     uint64_t mhartid = READ_CSR("mhartid");
-    // printf("Hello world from hart %d: %d\n", mhartid, counter);
     LL_UART_transmit(UART0, str, 64, 0);
 
+    uint8_t prefetch_en = 0;
+    uint64_t t_wo_prefetch;
+    uint64_t t_w_prefetch;
+
+    t_wo_prefetch = test_cache(prefetch_en);
+    if (t_wo_prefetch == 0) {
+      LL_UART_transmit(UART0, str_wo_pre_error, 64, 0);
+    } else {
+      LL_UART_transmit(UART0, str_wo_pre_pass, 64, 0);
+    }
+    prefetch_en = 1;
+    t_w_prefetch = test_cache(prefetch_en);
+    if (t_w_prefetch == 0) {
+      LL_UART_transmit(UART0, str_w_pre_error, 64, 0);
+    } else {
+      LL_UART_transmit(UART0, str_w_pre_pass, 64, 0);
+    }
+
+    /*
+    if (t_w_prefetch > (t_wo_prefetch / 2)) {
+      LL_UART_transmit(UART0, str_pre_no_eff, 64, 0);
+    } else {
+      LL_UART_transmit(UART0, str_pre_eff, 64, 0);
+    }
+    
+    if (t_w_prefetch > (t_wo_prefetch / 100)) {
+      LL_UART_transmit(UART0, str_pre_no_eff, 64, 0);
+    } else {
+      LL_UART_transmit(UART0, str_pre_eff, 64, 0);
+    }
+    */
+    if (t_w_prefetch < t_wo_prefetch) {
+      LL_UART_transmit(UART0, str_pre_le, 64, 0);
+    } else if (t_w_prefetch == t_wo_prefetch) {
+      LL_UART_transmit(UART0, str_pre_eq, 64, 0);
+    } else {
+      LL_UART_transmit(UART0, str_pre_ge, 64, 0);
+    }
+
     counter += 1;
+
+    //LL_delay(1000);
     /* USER CODE END WHILE */
   }
   /* USER CODE BEGIN 3 */
